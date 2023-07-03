@@ -18,7 +18,9 @@ struct HttpClient : std::enable_shared_from_this<HttpClient>
 	{
 		_resolver.async_resolve(
 			{ connectionParameter.host, connectionParameter.port },
-			[callabl = std::move(callable), sharedThis = this->shared_from_this(), this]
+			[callabl = std::move(callable), 
+			sharedThis = this->shared_from_this(), 
+			this]
 			(boost::system::error_code err,
 			const boost::asio::ip::tcp::resolver::results_type& endpoints) mutable
 			{
@@ -26,6 +28,7 @@ struct HttpClient : std::enable_shared_from_this<HttpClient>
 				{
 					std::cout << "resolve error occurred : " << err.message() << std::endl;
 					callabl(err);
+					DeferDeletion();
 					return;
 				}
 
@@ -33,16 +36,20 @@ struct HttpClient : std::enable_shared_from_this<HttpClient>
 					_socket,
 					endpoints,
 					[callbl = std::move(callabl),
-					sharedThis = std::move(sharedThis)](boost::system::error_code err, boost::asio::ip::tcp::endpoint /*ep*/)
+					sharedThis = std::move(sharedThis),
+					this]
+					(boost::system::error_code err, boost::asio::ip::tcp::endpoint /*ep*/)
 					{
 						if (err)
 						{
 							std::cout << "connect error occurred : " << err.message() << std::endl;
 							callbl(err);
+							DeferDeletion();
 							return;
 						}
 
 						callbl(std::error_code());
+						DeferDeletion();
 					}
 				);
 			}
@@ -54,12 +61,14 @@ struct HttpClient : std::enable_shared_from_this<HttpClient>
 	{
 		post(_httpClientParameters._executor, 
 			[callabl = std::move(callable),
-			sharedThis = this->shared_from_this()]() mutable {
+			sharedThis = this->shared_from_this(),
+			this]() mutable {
 
 			HttpResponse response{};
 			response.Body = "glad to know you";
 
 			callabl(std::error_code(), std::move(response));
+			DeferDeletion();
 		});
 	}
 
@@ -69,7 +78,15 @@ private:
 		_httpClientParameters(std::move(httpClientParameters)),
 		_resolver(_httpClientParameters._executor),
 		_socket(_httpClientParameters._executor)
-	{		
+	{
+	}
+
+	void DeferDeletion()
+	{
+		post(_httpClientParameters._executor,
+			[sharedThis = this->shared_from_this()]() mutable {
+			sharedThis.reset();
+		});
 	}
 
 	HttpClientParameters _httpClientParameters;
