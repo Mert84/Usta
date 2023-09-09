@@ -4,4 +4,5 @@ struct HttpResponse
 {
 	int StatusCode = 400;
 	std::string Body;
+	std::string Data;
 };

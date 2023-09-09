@@ -21,7 +21,7 @@ struct Tester
 		auto httpClient = HttpClient::Make(std::move(parameters));
 
 		ConnectionParameter connectionParameter;
-		connectionParameter.host = "google.com";
+		connectionParameter.host = "httpbin.org";
 		connectionParameter.port = "80";
 
 		httpClient->ConnectAsync(std::move(connectionParameter),
@@ -34,8 +34,14 @@ struct Tester
 
 				std::cout << "ConnectAsync succeeded" << std::endl;
 				
-				HttpRequest request;
-				httpClient->SendAsync(request,
+				//HttpRequest request;
+				std::string message = 
+					"GET /get HTTP/1.1" "\r\n"
+					"Host: httpbin.org" "\r\n"
+					"\r\n"
+					;
+
+				httpClient->SendAsync(message,
 					[](std::error_code err, HttpResponse response) {
 						if (err)
 						{
@@ -43,9 +49,9 @@ struct Tester
 							return;
 						}
 
-						std::cout << "Request succeeded. " << std::endl
-							<< "Response code : " << response.StatusCode << std::endl
-							<< "Response body : " << response.Body << std::endl;
+						std::cout << "Request succeeded. " << response.Data << std::endl;
+							/*<< "Response code : " << response.StatusCode << std::endl
+							<< "Response body : " << response.Body << std::endl;*/
 					});
 			});
 	}

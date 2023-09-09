@@ -57,19 +57,10 @@ struct HttpClient : std::enable_shared_from_this<HttpClient>
 	}
 
 	template<typename Callable>
-	void SendAsync(const HttpRequest & request, Callable callable)
+	void SendAsync(const std::string & httpMessageContent, Callable callable)
 	{
-		post(_httpClientParameters._executor, 
-			[callabl = std::move(callable),
-			sharedThis = this->shared_from_this(),
-			this]() mutable {
-
-			HttpResponse response{};
-			response.Body = "glad to know you";
-
-			callabl(std::error_code(), std::move(response));
-			DeferDeletion();
-		});
+		ReadResponseAsync(_socket, std::move(callable));
+		SendMessageAsync(_socket, httpMessageContent);
 	}
 
 private:
@@ -79,6 +70,41 @@ private:
 		_resolver(_httpClientParameters._executor),
 		_socket(_httpClientParameters._executor)
 	{
+	}
+
+	template<typename Callable>
+	void ReadResponseAsync(boost::asio::ip::tcp::socket& socket, Callable callable)
+	{
+		boost::asio::async_read_until(socket, _response, "\r\n\r\n", 
+			[this,
+			sharedThis = this->shared_from_this(),
+			callable = std::move(callable)]
+			(boost::system::error_code err, size_t byteCount) mutable{
+				if (err)
+				{
+					callable(err, HttpResponse{});
+					return;
+				}
+				
+				std::string data{ std::istreambuf_iterator<char>(&_response), std::istreambuf_iterator<char>() };
+				
+				HttpResponse response;
+				response.Data = move(data);
+
+				callable(std::error_code(), std::move(response));
+			});
+	}
+
+	void SendMessageAsync(boost::asio::ip::tcp::socket & socket, const std::string & content)
+	{
+		std::ostream os(&_request);
+		os << content;
+		
+		boost::asio::async_write(socket, _request, 
+			[sharedThis = this->shared_from_this()]
+		(boost::system::error_code err, std::size_t) {
+			//TODO: handle error case where we fail to send 
+		});
 	}
 
 	void DeferDeletion()
@@ -92,4 +118,7 @@ private:
 	HttpClientParameters _httpClientParameters;
 	boost::asio::ip::tcp::resolver _resolver;
 	boost::asio::ip::tcp::socket _socket;
+	boost::asio::streambuf _request;
+	boost::asio::streambuf _response;
+
 };
