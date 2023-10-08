@@ -5,6 +5,7 @@
 #include "ConnectionParameter.h"
 #include "../UstaCommon/HttpRequest.h"
 #include "../UstaCommon/HttpResponse.h"
+#include "../UstaCommon/HttpRequestSerializer.h"
 #include "HttpResponseStreamParser.h"
 #include "HttpResponsePopulator.h"
 
@@ -59,10 +60,10 @@ struct HttpClient : std::enable_shared_from_this<HttpClient>
 	}
 
 	template<typename Callable>
-	void SendAsync(const std::string & httpMessageContent, Callable callable)
+	void SendAsync(const HttpRequest & httpRequest, Callable callable)
 	{
 		ReadResponseAsync(_socket, std::move(callable));
-		SendMessageAsync(_socket, httpMessageContent);
+		SendMessageAsync(_socket, HttpRequestSerializer{ httpRequest }());
 	}
 
 private:

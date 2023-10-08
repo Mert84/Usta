@@ -1,5 +1,6 @@
 #pragma once
 #include <boost/asio.hpp>
+#include "../UstaHttpClient/RequestGenerators.h"
 #include "../UstaHttpClient/HttpClient.h"
 #include "../UstaCommon/HttpRequest.h"
 #include "../UstaCommon/HttpResponse.h"
@@ -20,27 +21,24 @@ struct Tester
 
 		auto httpClient = HttpClient::Make(std::move(parameters));
 
+		std::string link = "http://httpbin.org/get";
+
 		ConnectionParameter connectionParameterBetter = 
-			make_connection_parameter("http://httpbin.org");
+			make_connection_parameter(link);
 
 		httpClient->ConnectAsync(std::move(connectionParameterBetter),
-			[httpClient](std::error_code err) {
+			[httpClient, link](std::error_code err) {
 				if (err)
 				{
 					std::cout << "ConnectAsync failed" << std::endl;					
 					return;
 				}
 
-				std::cout << "ConnectAsync succeeded" << std::endl;
-				
-				//HttpRequest request;
-				std::string message = 
-					"GET /get HTTP/1.1" "\r\n"
-					"Host: httpbin.org" "\r\n"
-					"\r\n"
-					;
+				std::cout << "ConnectAsync succeeded" << std::endl;				
 
-				httpClient->SendAsync(message,
+				HttpRequest request = make_get_request(link);
+
+				httpClient->SendAsync(request,
 					[](std::error_code err, HttpResponse response) {
 						if (err)
 						{

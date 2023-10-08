@@ -28,6 +28,7 @@
     <ClInclude Include="..\..\src\UstaHttpClient\HttpHeaderParser.h" />
     <ClInclude Include="..\..\src\UstaHttpClient\HttpResponsePopulator.h" />
     <ClInclude Include="..\..\src\UstaHttpClient\HttpResponseStreamParser.h" />
+    <ClInclude Include="..\..\src\UstaHttpClient\RequestGenerators.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
