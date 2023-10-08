@@ -49,10 +49,26 @@ struct Tester
 							return;
 						}
 
-						std::cout << "Request succeeded. " << response.Data << std::endl;
-							/*<< "Response code : " << response.StatusCode << std::endl
-							<< "Response body : " << response.Body << std::endl;*/
+						std::cout << "Request succeeded. " << std::endl << std::endl;
+
+						Print(response);						
 					});
 			});
+	}
+
+	static void Print(const HttpResponse& response)
+	{
+		for (auto& startLinePart : response.Header.StartLine.parts)
+		{
+			std::cout << startLinePart << " ";
+		}
+		std::cout << std::endl;
+
+		for (auto& header : response.Header.Headers)
+		{
+			std::cout << header.Name << ": " << header.Value << std::endl;
+		}
+
+		std::cout << std::endl << response.Body;
 	}
 };

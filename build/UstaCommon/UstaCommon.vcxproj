@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\UstaCommon\HttpHeader.h" />
     <ClInclude Include="..\..\src\UstaCommon\HttpRequest.h" />
     <ClInclude Include="..\..\src\UstaCommon\HttpResponse.h" />
   </ItemGroup>

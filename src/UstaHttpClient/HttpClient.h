@@ -5,6 +5,8 @@
 #include "ConnectionParameter.h"
 #include "../UstaCommon/HttpRequest.h"
 #include "../UstaCommon/HttpResponse.h"
+#include "HttpResponseStreamParser.h"
+#include "HttpResponsePopulator.h"
 
 struct HttpClient : std::enable_shared_from_this<HttpClient>
 {
@@ -68,14 +70,16 @@ private:
 		:
 		_httpClientParameters(std::move(httpClientParameters)),
 		_resolver(_httpClientParameters._executor),
-		_socket(_httpClientParameters._executor)
+		_socket(_httpClientParameters._executor),
+		_httpResponseStreamParser(&_httpResponsePopulator)
 	{
 	}
 
 	template<typename Callable>
 	void ReadResponseAsync(boost::asio::ip::tcp::socket& socket, Callable callable)
 	{
-		boost::asio::async_read_until(socket, _response, "\r\n\r\n", 
+
+		boost::asio::async_read_until(socket, _response, _httpResponseStreamParser,
 			[this,
 			sharedThis = this->shared_from_this(),
 			callable = std::move(callable)]
@@ -86,12 +90,9 @@ private:
 					return;
 				}
 				
-				std::string data{ std::istreambuf_iterator<char>(&_response), std::istreambuf_iterator<char>() };
-				
-				HttpResponse response;
-				response.Data = move(data);
+				//std::string data{ std::istreambuf_iterator<char>(&_response), std::istreambuf_iterator<char>() };				
 
-				callable(std::error_code(), std::move(response));
+				callable(std::error_code(), std::move(_httpResponsePopulator.TheResponse()));
 			});
 	}
 
@@ -121,4 +122,6 @@ private:
 	boost::asio::streambuf _request;
 	boost::asio::streambuf _response;
 
+	HttpResponsePopulator _httpResponsePopulator;
+	HttpResponseStreamParser _httpResponseStreamParser;
 };

@@ -7,6 +7,7 @@
 int main()
 {
     boost::asio::io_context ioContext;
+    std::cout << "started" << std::endl;
 
     {
         auto dummyWork = std::make_unique<boost::asio::io_context::work>(ioContext);

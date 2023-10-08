@@ -29,5 +29,14 @@
     <ClInclude Include="..\..\src\UstaHttpClient\ConnectionParameter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\UstaHttpClient\HttpResponseStreamParser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\UstaHttpClient\HttpResponsePopulator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\UstaHttpClient\HttpHeaderParser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
