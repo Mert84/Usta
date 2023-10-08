@@ -8,6 +8,7 @@
 #include "../UstaCommon/HttpRequestSerializer.h"
 #include "HttpResponseStreamParser.h"
 #include "HttpResponsePopulator.h"
+#include <boost/asio/ssl.hpp>
 
 struct HttpClient : std::enable_shared_from_this<HttpClient>
 {
@@ -74,6 +75,13 @@ private:
 		_socket(_httpClientParameters._executor),
 		_httpResponseStreamParser(&_httpResponsePopulator)
 	{
+		if (_httpClientParameters._sslContext)
+		{
+			using namespace boost::asio;
+			_tlsSocket = std::make_shared<ssl::stream<ip::tcp::socket>>(
+				_httpClientParameters._executor,
+				*_httpClientParameters._sslContext);
+		}
 	}
 
 	template<typename Callable>
@@ -120,6 +128,8 @@ private:
 	HttpClientParameters _httpClientParameters;
 	boost::asio::ip::tcp::resolver _resolver;
 	boost::asio::ip::tcp::socket _socket;
+	std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> _tlsSocket;
+
 	boost::asio::streambuf _request;
 	boost::asio::streambuf _response;
 

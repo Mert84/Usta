@@ -1,5 +1,6 @@
 #pragma once
 #include <boost/asio.hpp>
+#include <boost/asio/ssl/context.hpp>
 #include "../UstaHttpClient/RequestGenerators.h"
 #include "../UstaHttpClient/HttpClient.h"
 #include "../UstaCommon/HttpRequest.h"
@@ -18,10 +19,11 @@ struct Tester
 	{
 		HttpClientParameters parameters;
 		parameters._executor = _executor;
+		parameters._sslContext = PrepareSslContext();
 
 		auto httpClient = HttpClient::Make(std::move(parameters));
 
-		std::string link = "http://httpbin.org/get";
+		std::string link = "https://httpbin.org/get";
 
 		ConnectionParameter connectionParameterBetter = 
 			make_connection_parameter(link);
@@ -51,6 +53,19 @@ struct Tester
 						Print(response);						
 					});
 			});
+	}
+
+	std::shared_ptr<boost::asio::ssl::context> PrepareSslContext()
+	{
+		using namespace boost::asio::ssl;
+		auto sslContext = std::make_shared<context>(context::tlsv13);
+		sslContext->set_verify_mode(verify_peer);
+
+		sslContext->set_verify_callback([](bool preverified, verify_context & verifyContext) {			
+			return preverified;
+		});
+
+		return sslContext;
 	}
 
 	static void Print(const HttpResponse& response)
