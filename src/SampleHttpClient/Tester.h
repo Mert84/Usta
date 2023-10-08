@@ -20,11 +20,10 @@ struct Tester
 
 		auto httpClient = HttpClient::Make(std::move(parameters));
 
-		ConnectionParameter connectionParameter;
-		connectionParameter.host = "httpbin.org";
-		connectionParameter.port = "80";
+		ConnectionParameter connectionParameterBetter = 
+			make_connection_parameter("http://httpbin.org");
 
-		httpClient->ConnectAsync(std::move(connectionParameter),
+		httpClient->ConnectAsync(std::move(connectionParameterBetter),
 			[httpClient](std::error_code err) {
 				if (err)
 				{
