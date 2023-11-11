@@ -32,7 +32,7 @@ struct Tester
 			[httpClient, link](std::error_code err) {
 				if (err)
 				{
-					std::cout << "ConnectAsync failed" << std::endl;					
+					std::cout << "ConnectAsync failed"  << err.message()  << std::endl;
 					return;
 				}
 
@@ -58,11 +58,11 @@ struct Tester
 	std::shared_ptr<boost::asio::ssl::context> PrepareSslContext()
 	{
 		using namespace boost::asio::ssl;
-		auto sslContext = std::make_shared<context>(context::tlsv13);
-		sslContext->set_verify_mode(verify_peer);
+		auto sslContext = std::make_shared<context>(context::tlsv12);
+		sslContext->set_verify_mode(verify_none);
 
 		sslContext->set_verify_callback([](bool preverified, verify_context & verifyContext) {			
-			return preverified;
+			return true;
 		});
 
 		return sslContext;

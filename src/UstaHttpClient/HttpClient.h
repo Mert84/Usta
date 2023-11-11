@@ -20,11 +20,13 @@ struct HttpClient : std::enable_shared_from_this<HttpClient>
 	template<typename Callable>
 	void ConnectAsync(ConnectionParameter connectionParameter, Callable callable)
 	{
+		_useTls = connectionParameter.useTls;
 		_resolver.async_resolve(
 			{ connectionParameter.host, connectionParameter.port },
 			[callabl = std::move(callable), 
 			sharedThis = this->shared_from_this(), 
-			this]
+			this,
+			host = connectionParameter.host]
 			(boost::system::error_code err,
 			const boost::asio::ip::tcp::resolver::results_type& endpoints) mutable
 			{
@@ -36,12 +38,50 @@ struct HttpClient : std::enable_shared_from_this<HttpClient>
 					return;
 				}
 
-				boost::asio::async_connect(
-					_socket,
-					endpoints,
-					[callbl = std::move(callabl),
-					sharedThis = std::move(sharedThis),
-					this]
+				if (_useTls)
+				{
+					if (!SSL_set_tlsext_host_name(_tlsSocket->native_handle(), host.c_str()))
+					{
+						callabl(std::make_error_code(static_cast<std::errc>(static_cast<int>(::ERR_get_error()))));
+						return;
+					}
+
+					boost::asio::async_connect(
+						_tlsSocket->lowest_layer(),
+						endpoints,
+						[callbl = std::move(callabl),
+						sharedThis = std::move(sharedThis),
+						this]
+					(boost::system::error_code err, boost::asio::ip::tcp::endpoint /*ep*/)
+					{
+						if (err)
+						{
+							std::cout << "connect error occurred : " << err.message() << std::endl;
+							callbl(err);
+							DeferDeletion();
+							return;
+						}
+
+						_tlsSocket->async_handshake(boost::asio::ssl::stream_base::client,
+							[sharedThis = std::move(sharedThis), 
+							this,
+							callbl = std::move(callbl)]
+							(boost::system::error_code err)
+							{
+								callbl(err);
+								DeferDeletion();
+							});
+					}
+					);
+				}
+				else
+				{
+					boost::asio::async_connect(
+						_socket,
+						endpoints,
+						[callbl = std::move(callabl),
+						sharedThis = std::move(sharedThis),
+						this]
 					(boost::system::error_code err, boost::asio::ip::tcp::endpoint /*ep*/)
 					{
 						if (err)
@@ -55,7 +95,8 @@ struct HttpClient : std::enable_shared_from_this<HttpClient>
 						callbl(std::error_code());
 						DeferDeletion();
 					}
-				);
+					);
+				}				
 			}
 		);
 	}
@@ -63,8 +104,9 @@ struct HttpClient : std::enable_shared_from_this<HttpClient>
 	template<typename Callable>
 	void SendAsync(const HttpRequest & httpRequest, Callable callable)
 	{
-		ReadResponseAsync(_socket, std::move(callable));
-		SendMessageAsync(_socket, HttpRequestSerializer{ httpRequest }());
+
+		ReadResponseAsync(std::move(callable));
+		SendMessageAsync(HttpRequestSerializer{ httpRequest }());
 	}
 
 private:
@@ -85,7 +127,23 @@ private:
 	}
 
 	template<typename Callable>
-	void ReadResponseAsync(boost::asio::ip::tcp::socket& socket, Callable callable)
+	void ReadResponseAsync(Callable callable)
+	{
+		if (_useTls)
+		{
+			if (_tlsSocket)
+			{
+				ReadResponseAsyncT(*_tlsSocket, std::move(callable));
+			}
+		}
+		else
+		{
+			ReadResponseAsyncT(_socket, std::move(callable));
+		}
+	}
+
+	template<typename Callable, typename SocketType>
+	void ReadResponseAsyncT(SocketType& socket, Callable callable)
 	{
 
 		boost::asio::async_read_until(socket, _response, _httpResponseStreamParser,
@@ -98,24 +156,41 @@ private:
 					callable(err, HttpResponse{});
 					return;
 				}
-				
-				//std::string data{ std::istreambuf_iterator<char>(&_response), std::istreambuf_iterator<char>() };				
 
 				callable(std::error_code(), std::move(_httpResponsePopulator.TheResponse()));
+				DeferDeletion();
 			});
 	}
 
-	void SendMessageAsync(boost::asio::ip::tcp::socket & socket, const std::string & content)
+	void SendMessageAsync(const std::string & content)
+	{
+		if (_useTls)
+		{
+			if (_tlsSocket)
+			{
+				SendMessageAsyncT(*_tlsSocket, content);
+			}
+		}
+		else
+		{
+			SendMessageAsyncT(_socket, content);
+		}		
+	}
+
+	template<typename SocketType>
+	void SendMessageAsyncT(SocketType & socket, const std::string& content)
 	{
 		std::ostream os(&_request);
 		os << content;
-		
-		boost::asio::async_write(socket, _request, 
+
+		boost::asio::async_write(socket, _request,
 			[sharedThis = this->shared_from_this()]
 		(boost::system::error_code err, std::size_t) {
 			//TODO: handle error case where we fail to send 
+			std::cout << "written : " << err.message() << std::endl;
 		});
 	}
+
 
 	void DeferDeletion()
 	{
@@ -135,4 +210,6 @@ private:
 
 	HttpResponsePopulator _httpResponsePopulator;
 	HttpResponseStreamParser _httpResponseStreamParser;
+
+	bool _useTls = false;
 };
