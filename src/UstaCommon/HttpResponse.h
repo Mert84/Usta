@@ -4,7 +4,14 @@
 
 struct HttpResponse
 {
-	int StatusCode = 400;
 	std::string Body;
 	HttpHeader Header;
+	int StatusCode()
+	{
+		if (Header.StartLine.parts.size() > 2 )
+		{
+			return std::stoi(Header.StartLine.parts[1]);
+		}
+		return -1;
+	}
 };
