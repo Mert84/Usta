@@ -7,6 +7,10 @@
 #include "../UstaCommon/HttpRequest.h"
 #include "../UstaCommon/HttpResponse.h"
 #include "LinkProvider.h"
+#include "date.h"
+#include <chrono>
+using namespace date;
+using namespace std::chrono;
 
 struct Tester
 {
@@ -77,26 +81,34 @@ struct Tester
 		ConnectionParameter connectionParameterBetter =
 			make_connection_parameter(link);
 
+		auto beforeConnect = std::chrono::steady_clock::now();
 		httpClient->ConnectAsync(std::move(connectionParameterBetter),
-			[httpClient, link, this](std::error_code err) {
+			[httpClient, link, this, beforeConnect](std::error_code err) {
 				if (err)
 				{
 					std::cout << "ConnectAsync failed" << err.message() << std::endl;
 					return;
 				}
+				auto afterConnect = std::chrono::steady_clock::now();
 
-				std::cout << "ConnectAsync succeeded" << std::endl;
+				std::cout << "ConnectAsync succeeded in " <<
+					duration_cast<milliseconds>(afterConnect - beforeConnect) << std::endl;
 
 				HttpRequest request = make_get_request(link);
 
 				httpClient->SendAsync(request,
-					[this](std::error_code err, HttpResponse response) {
+					[this, afterConnect](std::error_code err, HttpResponse response) {
 						if (err)
 						{
 							std::cout << "error occurred. Error message: " << err.message() << std::endl;
 							return;
 						}
-						
+
+						auto afterDownloadDone = std::chrono::steady_clock::now();
+
+						std::cout << "Download succeeded in " <<
+							duration_cast<milliseconds>(afterDownloadDone - afterConnect) << std::endl;
+
 						if (Validate(response))
 						{
 							std::cout << "successfuly downloaded size " << response.Body.size() << std::endl;

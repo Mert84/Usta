@@ -22,6 +22,7 @@
     <ClCompile Include="..\..\src\ClientStressTest\ClientStressTest.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\ClientStressTest\date.h" />
     <ClInclude Include="..\..\src\ClientStressTest\LinkProvider.h" />
     <ClInclude Include="..\..\src\ClientStressTest\Tester.h" />
   </ItemGroup>
