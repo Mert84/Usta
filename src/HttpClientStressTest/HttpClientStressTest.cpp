@@ -34,6 +34,9 @@ std::shared_ptr<boost::asio::ssl::context> PrepareSslContext()
 
 void test()
 {
+    int concurrency = 500;
+
+    //......
     boost::asio::io_context ioContext;
     std::cout << "started" << std::endl;
 
@@ -42,7 +45,7 @@ void test()
 
         auto dummyWork = std::make_unique<boost::asio::io_context::work>(ioContext);
 
-        StressTester stressTester(ioContext, sslContext);
+        StressTester stressTester(ioContext, sslContext, concurrency);
         stressTester();
 
         std::thread th([&ioContext]() {

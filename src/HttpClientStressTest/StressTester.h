@@ -10,7 +10,10 @@ inline bool Validate(HttpResponse& response)
 {
 	if (response.StatusCode() == 200)
 	{
-		return true;
+		if (response.Body == "asdasd")
+		{
+			return true;
+		}
 	}
 
 	return false;
@@ -20,15 +23,26 @@ struct StressTester
 {
 	boost::asio::any_io_executor _executor;
 	std::shared_ptr<boost::asio::ssl::context> _sslContext;
+	int _concurrency = 0;
 
 	explicit StressTester(boost::asio::io_context & ioContext,
-		std::shared_ptr<boost::asio::ssl::context> sslContext)
+		std::shared_ptr<boost::asio::ssl::context> sslContext,
+		int concurrency)
 		:
 		_executor(ioContext.get_executor()),
-		_sslContext(move(sslContext))
+		_sslContext(move(sslContext)),
+		_concurrency(concurrency)
 	{}
 
 	void operator()()
+	{
+		for (int i = 0; i < _concurrency; i++)
+		{
+			Start();
+		}
+	}
+
+	void Start()
 	{
 		HttpClientParameters parameters;
 		parameters._executor = _executor;
@@ -36,7 +50,7 @@ struct StressTester
 
 		auto httpClient = HttpClient::Make(std::move(parameters));
 
-		std::string link = "http://localhost/a.txt";
+		std::string link = "http://127.0.0.1/a.txt";
 
 		ConnectionParameter connectionParameterBetter =
 			make_connection_parameter(link);
