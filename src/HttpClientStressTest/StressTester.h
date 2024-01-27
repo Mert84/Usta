@@ -24,6 +24,9 @@ struct StressTester
 	boost::asio::any_io_executor _executor;
 	std::shared_ptr<boost::asio::ssl::context> _sslContext;
 	int _concurrency = 0;
+	int _succededCount = 0;
+	int _failedCount = 0;
+	std::mutex _countMtx;
 
 	explicit StressTester(boost::asio::io_context & ioContext,
 		std::shared_ptr<boost::asio::ssl::context> sslContext,
@@ -56,36 +59,49 @@ struct StressTester
 			make_connection_parameter(link);
 
 		httpClient->ConnectAsync(std::move(connectionParameterBetter),
-			[httpClient, link](std::error_code err) {
+			[httpClient, link, this](std::error_code err) {
 				if (err)
 				{
+					std::lock_guard<std::mutex> lck(_countMtx);
+					++_failedCount;
 					std::cout << "ConnectAsync failed" << err.message() << std::endl;
 					return;
 				}
 
-				std::cout << "ConnectAsync succeeded" << std::endl;
-
 				HttpRequest request = make_get_request(link);
 
 				httpClient->SendAsync(request,
-					[](std::error_code err, HttpResponse response) {
+					[this](std::error_code err, HttpResponse response) {
+						
+						std::cout << "one more test finished" << std::endl;
+
 						if (err)
 						{
 							std::cout << "error occurred. Error message: " << err.message() << std::endl;
 							return;
 						}
 
+						std::lock_guard<std::mutex> lck(_countMtx);
 
 						auto valid = Validate(response);
 						if (valid)
 						{
-							std::cout << "Request succeeded. " << std::endl;
+							++_succededCount;
 						}
 						else
 						{
-							std::cout << "Request failed. " << std::endl;
+							++_failedCount;
 						}
 					});
 			});
 	}
+
+	void PrintResult()
+	{
+		std::cout 
+			<< "sucess : " << _succededCount
+			<< " fail : " << _failedCount
+			<< std::endl;
+	}
+
 };
