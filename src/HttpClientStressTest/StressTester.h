@@ -57,8 +57,10 @@ struct StressTester
 		ConnectionParameter connectionParameterBetter =
 			make_connection_parameter(link);
 
+		auto beforeConnect = std::chrono::steady_clock::now();
+
 		httpClient->ConnectAsync(std::move(connectionParameterBetter),
-			[httpClient, link, this](std::error_code err) {
+			[httpClient, link, this, beforeConnect](std::error_code err) {
 				if (err)
 				{
 					std::lock_guard<std::mutex> lck(_countMtx);
@@ -66,19 +68,28 @@ struct StressTester
 					std::cout << "ConnectAsync failed" << err.message() << std::endl;
 					return;
 				}
+				
+				auto afterConnect = std::chrono::steady_clock::now();
+				auto connectMsec = 
+					std::chrono::duration_cast<std::chrono::milliseconds>(afterConnect - beforeConnect);
+				std::cout << "ConnectAsync succeeded in " << connectMsec .count() << " milliseconds" << std::endl;
 
 				HttpRequest request = make_get_request(link);
 
 				httpClient->SendAsync(request,
-					[this](std::error_code err, HttpResponse response) {
-						
-						std::cout << "one more test finished" << std::endl;
+					[this, afterConnect](std::error_code err, HttpResponse response) {						
 
 						if (err)
 						{
 							std::cout << "error occurred. Error message: " << err.message() << std::endl;
 							return;
 						}
+
+						auto received = std::chrono::steady_clock::now();
+						auto receiveTime =
+							std::chrono::duration_cast<std::chrono::milliseconds>(received - afterConnect);
+						std::cout << "Received in " << receiveTime.count() << " milliseconds" << std::endl;
+
 
 						std::lock_guard<std::mutex> lck(_countMtx);
 
