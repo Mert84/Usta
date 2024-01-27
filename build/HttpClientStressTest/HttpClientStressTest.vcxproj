@@ -22,6 +22,7 @@
     <ClCompile Include="..\..\src\HttpClientStressTest\HttpClientStressTest.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\HttpClientStressTest\LinkGenerator.h" />
     <ClInclude Include="..\..\src\HttpClientStressTest\StressTester.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

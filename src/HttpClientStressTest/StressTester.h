@@ -5,15 +5,13 @@
 #include "../UstaHttpClient/HttpClient.h"
 #include "../UstaCommon/HttpRequest.h"
 #include "../UstaCommon/HttpResponse.h"
+#include "LinkGenerator.h"
 
 inline bool Validate(HttpResponse& response)
 {
 	if (response.StatusCode() == 200)
 	{
-		if (response.Body == "asdasd")
-		{
-			return true;
-		}
+		return true;
 	}
 
 	return false;
@@ -27,6 +25,7 @@ struct StressTester
 	int _succededCount = 0;
 	int _failedCount = 0;
 	std::mutex _countMtx;
+	LinkGenerator _linkGenerator;
 
 	explicit StressTester(boost::asio::io_context & ioContext,
 		std::shared_ptr<boost::asio::ssl::context> sslContext,
@@ -53,7 +52,7 @@ struct StressTester
 
 		auto httpClient = HttpClient::Make(std::move(parameters));
 
-		std::string link = "http://127.0.0.1/a.txt";
+		std::string link = _linkGenerator();
 
 		ConnectionParameter connectionParameterBetter =
 			make_connection_parameter(link);
