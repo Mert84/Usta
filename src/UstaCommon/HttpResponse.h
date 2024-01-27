@@ -4,7 +4,23 @@
 
 struct HttpResponse
 {
-	int StatusCode = 400;
 	std::string Body;
 	HttpHeader Header;
+
+	int StatusCode()
+	{
+		if (Header.StartLine.parts.size() <= 2)
+		{
+			return -1;
+		}
+
+		try
+		{
+			return std::stoi(Header.StartLine.parts[1]);
+		}
+		catch (const std::exception&)
+		{
+			return -2;
+		}
+	}
 };
